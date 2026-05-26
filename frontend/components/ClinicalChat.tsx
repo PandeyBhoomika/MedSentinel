@@ -8,7 +8,7 @@ import { AgGridReact } from "ag-grid-react";
 // AG Grid Core CSS & Module Registration
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+import "ag-grid-community/styles/ag-theme-alpine.css"; // <--- Updated
 
 // Fix for AG Grid Error #272: Register the community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -70,8 +70,8 @@ export default function ClinicalChat() {
     };
 
     return (
-        <div className="bg-surface border border-gray-100 p-6 rounded-2xl shadow-sm space-y-6 mt-8">
-            <div className="flex items-center space-x-3 text-accent border-b border-gray-100 pb-4">
+        <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm space-y-6 mt-8">
+            <div className="flex items-center space-x-3 text-accent border-b border-border pb-4">
                 <BotMessageSquare className="h-6 w-6 text-primary" />
                 <h2 className="text-xl font-bold">Natural Language Database Agent</h2>
             </div>
@@ -86,7 +86,7 @@ export default function ClinicalChat() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ask the AI (e.g., 'Show me all anomalies' or 'Show patients with heart rate over 100')"
-                    className="w-full pl-12 pr-32 py-4 bg-background border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-accent"
+                    className="w-full pl-12 pr-32 py-4 bg-surface-2 border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-accent"
                 />
                 <button
                     type="submit"
@@ -107,7 +107,7 @@ export default function ClinicalChat() {
 
             {/* SQL Transparency Badge */}
             {sqlUsed && (
-                <div className="flex items-start space-x-2 text-xs text-muted bg-background p-3 rounded-lg border border-gray-100 font-mono overflow-x-auto">
+                <div className="flex items-start space-x-2 text-xs text-muted bg-surface-2 p-3 rounded-lg border border-border font-mono overflow-x-auto">
                     <Database className="h-4 w-4 flex-shrink-0 mt-0.5 text-secondary" />
                     <span><strong className="text-accent">AI Generated SQL:</strong> {sqlUsed}</span>
                 </div>
@@ -115,7 +115,7 @@ export default function ClinicalChat() {
 
             {/* AG Grid Data Table */}
             {rowData !== null && (
-                <div className="ag-theme-quartz w-full h-[400px] border border-gray-200 rounded-xl overflow-hidden mt-4">
+                <div className="ag-theme-alpine-dark w-full h-[400px] border border-border rounded-xl overflow-hidden mt-4">
                     {rowData.length > 0 ? (
                         <AgGridReact
                             rowData={rowData}

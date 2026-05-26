@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text  # <-- Added this import
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from typing import List, Any
 import pandas as pd
 
 # Import our custom modules
@@ -53,7 +54,6 @@ def health_check(db: Session = Depends(database.get_db)):
     # 1. Test Database Connection
     try:
         # A simple query to check if the DB is responding
-        # <-- Updated to explicitly declare as text()
         db.execute(text("SELECT 1")) 
         health_status["database"] = "connected"
     except Exception as e:
@@ -70,6 +70,10 @@ def health_check(db: Session = Depends(database.get_db)):
 class QueryRequest(BaseModel):
     question: str
 
+class DatasetUpload(BaseModel):
+    columns: List[str]
+    rows: List[List[Any]]
+
 # --- MedSentinel API Routes ---
 
 @app.post("/api/detect")
@@ -80,7 +84,6 @@ def run_full_detection_pipeline(db: Session = Depends(database.get_db)):
     """
     try:
         # 1. Load data from the database into a Pandas DataFrame
-        # (In a real hospital, you'd filter this by date or patient cohort)
         query = "SELECT * FROM vitals"
         df = pd.read_sql(query, db.get_bind())
         
@@ -95,7 +98,6 @@ def run_full_detection_pipeline(db: Session = Depends(database.get_db)):
         df = medical_logic.evaluate_clinical_anomalies(df)
 
         # 4. Save the updated threat scores and AI reasons back to PostgreSQL
-        # We write it to a temporary table and then update, or just use pandas to_sql for simplicity in this MVP
         df.to_sql('vitals', con=db.get_bind(), if_exists='replace', index=False)
         
         # Calculate summary stats to return to the frontend UI
@@ -127,3 +129,44 @@ def natural_language_query(request: QueryRequest):
         raise HTTPException(status_code=400, detail=result["error"])
         
     return result
+
+@app.post("/api/upload-dataset")
+async def upload_dataset(payload: DatasetUpload):
+    """
+    Accepts an uploaded dataset from the frontend, converts it to a DataFrame, 
+    runs the ML/AI pipeline dynamically, and returns the scored data.
+    """
+    try:
+        # Convert incoming JSON payload directly into a Pandas DataFrame
+        df = pd.DataFrame(payload.rows, columns=payload.columns)
+        
+        # Ensure we only pass numeric columns to the Isolation Forest
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        
+        if not numeric_cols:
+            raise HTTPException(status_code=400, detail="Dataset must contain at least one numeric column for anomaly detection.")
+
+        # Run the ML pipeline (Isolation Forest)
+        df = clinical_detection.run_anomaly_detection(df, numeric_cols)
+        
+        # Run the Groq AI medical logic to explain the anomalies
+        df = medical_logic.evaluate_clinical_anomalies(df)
+        
+        # Calculate summary statistics
+        anomalies_flagged = int(df['is_anomaly'].sum()) if 'is_anomaly' in df.columns else 0
+        
+        # Clean the DataFrame for JSON serialization (FastAPI/JSON hates NaNs)
+        df = df.where(pd.notnull(df), None)
+        cleaned_data = df.to_dict(orient="records")
+        
+        return {
+            "status": "success",
+            "total_records": len(df),
+            "anomalies_flagged": anomalies_flagged,
+            "cleaned_data": cleaned_data
+        }
+        
+    except Exception as e:
+        # Log the exact error and pass it back to the frontend
+        logger.error(f"Dataset Upload Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

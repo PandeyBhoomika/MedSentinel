@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  /* MedSentinel Clinical Design System */
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-primary: #0077B6;
-  --color-secondary: #48CAE4;
-  --color-accent: #03045E;
-  --color-success: #10B981;
-  --color-danger: #EF4444;
-  --color-warning: #F59E0B;
-  --color-muted: #64748B;
+  --color-background: #0a0f1e;
+  --color-surface: #111827;
+  --color-surface-2: #1a2235;
+  --color-primary: #00d4ff;
+  --color-secondary: #7c3aed;
+  --color-accent: #f1f5f9;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-muted: #64748b;
+  --color-border: rgba(255, 255, 255, 0.08);
 }
 
-/* Base body styles using standard CSS variables */
 body {
   background-color: var(--color-background);
   color: var(--color-accent);

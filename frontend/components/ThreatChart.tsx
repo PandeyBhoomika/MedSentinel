@@ -33,8 +33,11 @@ export default function ThreatChart() {
     }, []);
 
     return (
-        <div className="bg-surface border border-gray-100 p-6 rounded-2xl shadow-sm space-y-6 mt-8">
-            <div className="flex items-center space-x-3 text-accent border-b border-gray-100 pb-4">
+        // 1. Update the main container wrapper:
+        <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm space-y-6 mt-8">
+
+// 2. Update the header div right inside it:
+            <div className="flex items-center space-x-3 text-accent border-b border-border pb-4">
                 <Activity className="h-6 w-6 text-primary" />
                 <h2 className="text-xl font-bold">Anomaly Threat Distribution (Heart Rate)</h2>
             </div>
