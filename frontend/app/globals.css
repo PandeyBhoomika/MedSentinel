@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  /* MedSentinel Clinical Design System */
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-primary: #0077B6;
+  --color-secondary: #48CAE4;
+  --color-accent: #03045E;
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-muted: #64748B;
+}
+
+/* Base body styles using standard CSS variables */
+body {
+  background-color: var(--color-background);
+  color: var(--color-accent);
+}
