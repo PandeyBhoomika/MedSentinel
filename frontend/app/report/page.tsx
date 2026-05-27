@@ -6,7 +6,7 @@ import {
     Activity, Download, ArrowLeft, PlusCircle,
     FileText, Database, Sparkles, AlertTriangle, BrainCircuit
 } from "lucide-react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import { AgGridReact } from "ag-grid-react";
 import {
