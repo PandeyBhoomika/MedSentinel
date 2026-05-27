@@ -84,6 +84,12 @@ const TABLE_DATA = [
 
 const FAKE_RESPONSE_TEXT = "Based on my analysis, patient PT-106 shows severe temporal inconsistencies across multiple vital sign streams. The recorded heart rate of 190 bpm coupled with an impossible glucose variation strongly indicates sensor misalignment or data corruption. I have flagged this record with a Threat Score of 94.";
 
+const INITIAL_CHAT_STATE = [
+    { type: "bot", text: "👋 Hi! I'm your MedSentinel AI. I can help you analyze clinical data, explain anomalies, and guide you through the platform." },
+    { type: "user", text: "What anomaly types can you detect?" },
+    { type: "bot", text: "I detect: cardiovascular irregularities, lab value outliers, impossible physiological values, duplicate records, and temporal inconsistencies in EHR data." }
+];
+
 // ============================================================================
 // REUSABLE COMPONENTS
 // ============================================================================
@@ -147,10 +153,40 @@ export default function LandingPage() {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [typedResponse, setTypedResponse] = useState("");
 
+    // --- Interactive Chat States ---
+    const [chatMessages, setChatMessages] = useState(INITIAL_CHAT_STATE);
+    const [chatInput, setChatInput] = useState("");
+    const chatEndRef = useRef<HTMLDivElement>(null);
+
     const inlineChatRef = useRef<HTMLDivElement>(null);
     const isInlineChatInView = useInView(inlineChatRef, { once: true, margin: "-100px" });
 
     const phrases = ["Anomaly Detection", "Data Cleaning", "Missing Value Handling", "Clinical AI Insights"];
+
+    // Auto-scroll chat to bottom
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [chatMessages, isChatOpen]);
+
+    // Handle Chat Submit
+    const handleSendChat = () => {
+        if (!chatInput.trim()) return;
+
+        // Add user message
+        const newMessages = [...chatMessages, { type: "user", text: chatInput }];
+        setChatMessages(newMessages);
+        setChatInput("");
+
+        // Simulate Bot Typing/Response
+        setTimeout(() => {
+            setChatMessages(prev => [...prev, {
+                type: "bot",
+                text: "I am currently in landing-page demo mode! To process real data and unlock my full ML capabilities, please head over to the Upload Dataset page. 🚀"
+            }]);
+        }, 1200);
+    };
 
     // Typewriter Effect
     useEffect(() => {
@@ -704,7 +740,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Floating Chat Button (Component A) */}
+            {/* Floating Chat Button (Interactive Component A) */}
             <div className="fixed bottom-8 left-8 z-50 flex flex-col items-start justify-end">
                 <AnimatePresence>
                     {isChatOpen && (
@@ -723,23 +759,39 @@ export default function LandingPage() {
                                 </div>
                                 <button onClick={() => setIsChatOpen(false)} className="text-muted hover:text-accent"><X className="h-4 w-4" /></button>
                             </div>
-                            {/* Chat Body */}
-                            <div className="flex-1 p-4 overflow-y-auto space-y-4 text-sm">
-                                <div className="bg-surface-2 border border-border rounded-xl rounded-tl-none p-3 text-accent shadow-sm">
-                                    👋 Hi! I'm your MedSentinel AI. I can help you analyze clinical data, explain anomalies, and guide you through the platform.
-                                </div>
-                                <div className="bg-primary/20 border border-primary/30 rounded-xl rounded-tr-none p-3 text-primary self-end ml-10 shadow-sm">
-                                    What anomaly types can you detect?
-                                </div>
-                                <div className="bg-surface-2 border border-border rounded-xl rounded-tl-none p-3 text-accent shadow-sm">
-                                    I detect: cardiovascular irregularities, lab value outliers, impossible physiological values, duplicate records, and temporal inconsistencies in EHR data.
-                                </div>
+
+                            {/* Chat Body (Interactive) */}
+                            <div className="flex-1 p-4 overflow-y-auto space-y-4 text-sm flex flex-col">
+                                {chatMessages.map((msg, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`p-3 shadow-sm ${msg.type === 'bot'
+                                            ? 'bg-surface-2 border border-border rounded-xl rounded-tl-none text-accent self-start mr-10'
+                                            : 'bg-primary/20 border border-primary/30 rounded-xl rounded-tr-none text-primary self-end ml-10'}`}
+                                    >
+                                        {msg.text}
+                                    </div>
+                                ))}
+                                <div ref={chatEndRef} />
                             </div>
-                            {/* Chat Input UI */}
+
+                            {/* Chat Input UI (Interactive) */}
                             <div className="p-3 border-t border-border bg-surface/50">
                                 <div className="relative">
-                                    <input type="text" placeholder="Ask about your data..." className="w-full bg-background border border-border rounded-lg py-2 pl-3 pr-8 text-xs text-accent focus:outline-none" />
-                                    <div className="absolute right-2 top-2"><ArrowRight className="h-3 w-3 text-muted" /></div>
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                                        placeholder="Ask about your data..."
+                                        className="w-full bg-background border border-border rounded-lg py-2 pl-3 pr-8 text-xs text-accent focus:outline-none"
+                                    />
+                                    <button
+                                        onClick={handleSendChat}
+                                        className="absolute right-2 top-2 cursor-pointer hover:scale-110 transition-transform"
+                                    >
+                                        <ArrowRight className="h-3 w-3 text-primary" />
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>
