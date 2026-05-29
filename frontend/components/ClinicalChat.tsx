@@ -7,7 +7,7 @@ import {
     AlertTriangle, Sparkles, ChevronRight, Zap,
     TrendingUp, Activity, FileSearch, BarChart3,
     Send, RotateCcw, Copy, CheckCheck, Code2,
-    UploadCloud, Info
+    UploadCloud, Info, Mic
 } from "lucide-react";
 import { AgGridReact } from "ag-grid-react";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
@@ -104,8 +104,8 @@ function ResultSummary({ data, mode }: { data: unknown[]; mode: "dataset" | "dat
             <span className="text-[#64748b]"><span className="text-[#f1f5f9] font-mono">{data.length}</span> rows</span>
             <span className="text-[#64748b]"><span className="text-[#f1f5f9] font-mono">{cols}</span> columns</span>
             <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${mode === "dataset"
-                    ? "text-[#00d4ff] border-[#00d4ff]/30 bg-[#00d4ff]/10"
-                    : "text-[#7c3aed] border-[#7c3aed]/30 bg-[#7c3aed]/10"
+                ? "text-[#00d4ff] border-[#00d4ff]/30 bg-[#00d4ff]/10"
+                : "text-[#7c3aed] border-[#7c3aed]/30 bg-[#7c3aed]/10"
                 }`}>
                 {mode === "dataset" ? "Pandas · Uploaded Dataset" : "SQL · Database"}
             </span>
@@ -125,7 +125,48 @@ export default function ClinicalChat() {
     const [queryMode, setQueryMode] = useState<"dataset" | "database">("database");
     const [datasetLoaded, setDatasetLoaded] = useState(false);
     const [datasetInfo, setDatasetInfo] = useState<{ columns: string[]; rows: unknown[][] } | null>(null);
+
+    // --- Voice Search States ---
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // ── Initialize Web Speech API ────────────────────────────────────────────
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+            if (SpeechRecognition) {
+                recognitionRef.current = new SpeechRecognition();
+                recognitionRef.current.continuous = false;
+                recognitionRef.current.interimResults = true;
+
+                recognitionRef.current.onresult = (event: any) => {
+                    let currentTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        currentTranscript += event.results[i][0].transcript;
+                    }
+                    setQuery(currentTranscript);
+                };
+
+                recognitionRef.current.onend = () => {
+                    setIsListening(false);
+                };
+            }
+        }
+    }, []);
+
+    // ── Toggle Voice Recognition ─────────────────────────────────────────────
+    const toggleVoice = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        } else {
+            setQuery(''); // Clear input before starting
+            recognitionRef.current?.start();
+            setIsListening(true);
+        }
+    };
 
     // ── Detect if a dataset is loaded in localStorage ────────────────────────
     useEffect(() => {
@@ -152,6 +193,12 @@ export default function ClinicalChat() {
         const queryText = (q || query).trim();
         if (!queryText || isLoading) return;
 
+        // Stop listening if user submits while still talking
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        }
+
         setIsLoading(true);
         setResult(null);
         setErrorMsg(null);
@@ -162,14 +209,12 @@ export default function ClinicalChat() {
             let response;
 
             if (queryMode === "dataset" && datasetInfo) {
-                // ── Route to new Pandas-based endpoint ───────────────────────
                 response = await axios.post(`${API_URL}/api/query-dataset`, {
                     question: queryText,
                     columns: datasetInfo.columns,
                     rows: datasetInfo.rows,
                 });
             } else {
-                // ── Legacy SQL → PostgreSQL route ────────────────────────────
                 response = await axios.post(`${API_URL}/api/query`, {
                     question: queryText,
                 });
@@ -224,6 +269,10 @@ export default function ClinicalChat() {
     };
 
     const clearAll = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        }
         setResult(null);
         setErrorMsg(null);
         setErrorCode(null);
@@ -271,8 +320,8 @@ export default function ClinicalChat() {
                     onClick={() => { setQueryMode("dataset"); clearAll(); }}
                     disabled={!datasetLoaded}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${queryMode === "dataset"
-                            ? "bg-[#00d4ff] text-[#0a0f1e] shadow-[0_0_10px_rgba(0,212,255,0.3)]"
-                            : "text-[#64748b] hover:text-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed"
+                        ? "bg-[#00d4ff] text-[#0a0f1e] shadow-[0_0_10px_rgba(0,212,255,0.3)]"
+                        : "text-[#64748b] hover:text-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed"
                         }`}
                 >
                     <UploadCloud className="h-3.5 w-3.5" />
@@ -284,8 +333,8 @@ export default function ClinicalChat() {
                 <button
                     onClick={() => { setQueryMode("database"); clearAll(); }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${queryMode === "database"
-                            ? "bg-[#7c3aed] text-white shadow-[0_0_10px_rgba(124,58,237,0.3)]"
-                            : "text-[#64748b] hover:text-[#f1f5f9]"
+                        ? "bg-[#7c3aed] text-white shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                        : "text-[#64748b] hover:text-[#f1f5f9]"
                         }`}
                 >
                     <Database className="h-3.5 w-3.5" />
@@ -345,11 +394,11 @@ export default function ClinicalChat() {
                 </div>
             </div>
 
-            {/* ── Search Input ── */}
+            {/* ── Search Input with Voice ── */}
             <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#00d4ff]/10 to-[#7c3aed]/10 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity" />
                 <div className="relative flex items-center bg-[#111827] border border-[rgba(255,255,255,0.08)] group-focus-within:border-[rgba(0,212,255,0.4)] rounded-2xl transition-all overflow-hidden">
-                    <Search className="h-5 w-5 text-[#64748b] ml-4 flex-shrink-0" />
+                    <Search className="h-5 w-5 text-[#64748b] ml-4 flex-shrink-0 hidden sm:block" />
                     <input
                         ref={inputRef}
                         type="text"
@@ -358,17 +407,31 @@ export default function ClinicalChat() {
                         onKeyDown={handleKeyDown}
                         placeholder={
                             queryMode === "dataset"
-                                ? "e.g. Show patients with AFib and heart rate > 100, drop missing QT values…"
-                                : "e.g. Show all anomalies with threat score above 70…"
+                                ? "e.g. Show patients with AFib and heart rate > 100..."
+                                : "e.g. Show all anomalies with threat score above 70..."
                         }
-                        className="flex-1 pl-3 pr-4 py-4 bg-transparent outline-none text-[#f1f5f9] placeholder-[#64748b] text-sm"
+                        className="flex-1 pl-4 sm:pl-3 pr-4 py-4 bg-transparent outline-none text-[#f1f5f9] placeholder-[#64748b] text-sm"
                         disabled={isLoading}
                     />
+
+                    {/* Voice Button */}
+                    <button
+                        onClick={toggleVoice}
+                        className={`p-2.5 rounded-full transition-all duration-300 flex-shrink-0 ${isListening
+                                ? "bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                                : "text-[#64748b] hover:text-[#00d4ff] hover:bg-[#00d4ff]/10"
+                            }`}
+                        title={isListening ? "Stop listening" : "Start Voice Query"}
+                    >
+                        <Mic className="h-5 w-5" />
+                    </button>
+
+                    {/* Submit Button */}
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleAskAI()}
                         disabled={isLoading || !query.trim() || (queryMode === "dataset" && !datasetLoaded)}
-                        className="m-2 flex items-center gap-2 px-5 py-2.5 bg-[#00d4ff] hover:bg-[#00d4ff]/80 text-[#0a0f1e] rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+                        className="m-2 ml-1 flex items-center gap-2 px-5 py-2.5 bg-[#00d4ff] hover:bg-[#00d4ff]/80 text-[#0a0f1e] rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,212,255,0.3)]">
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         <span className="hidden sm:block">{isLoading ? "Analyzing…" : "Ask AI"}</span>
                     </motion.button>

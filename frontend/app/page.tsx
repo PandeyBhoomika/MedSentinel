@@ -8,7 +8,7 @@ import * as THREE from "three";
 import {
     UploadCloud, Activity, ShieldCheck, Lock, Zap,
     Database, Server, Code, Sparkles, AlertTriangle,
-    BotMessageSquare, FileText, ArrowRight, FileSearch, ArrowUp, X, CheckCircle, BrainCircuit, HeartPulse
+    BotMessageSquare, FileText, ArrowRight, FileSearch, ArrowUp, X, CheckCircle, BrainCircuit, HeartPulse, Mic
 } from "lucide-react";
 import {
     AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
@@ -153,15 +153,54 @@ export default function LandingPage() {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [typedResponse, setTypedResponse] = useState("");
 
-    // --- Interactive Chat States ---
+    // --- Interactive Chat & Voice States ---
     const [chatMessages, setChatMessages] = useState(INITIAL_CHAT_STATE);
     const [chatInput, setChatInput] = useState("");
+    const [isListening, setIsListening] = useState(false);
+
     const chatEndRef = useRef<HTMLDivElement>(null);
-
+    const recognitionRef = useRef<any>(null); // Ref for Web Speech API
     const inlineChatRef = useRef<HTMLDivElement>(null);
-    const isInlineChatInView = useInView(inlineChatRef, { once: true, margin: "-100px" });
 
+    const isInlineChatInView = useInView(inlineChatRef, { once: true, margin: "-100px" });
     const phrases = ["Anomaly Detection", "Data Cleaning", "Missing Value Handling", "Clinical AI Insights"];
+
+    // Initialize Web Speech API
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+            if (SpeechRecognition) {
+                recognitionRef.current = new SpeechRecognition();
+                recognitionRef.current.continuous = false;
+                recognitionRef.current.interimResults = true;
+
+                recognitionRef.current.onresult = (event: any) => {
+                    let currentTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        currentTranscript += event.results[i][0].transcript;
+                    }
+                    setChatInput(currentTranscript);
+                };
+
+                recognitionRef.current.onend = () => {
+                    setIsListening(false);
+                };
+            }
+        }
+    }, []);
+
+    // Toggle Voice Recognition
+    const toggleVoice = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        } else {
+            setChatInput('');
+            recognitionRef.current?.start();
+            setIsListening(true);
+        }
+    };
 
     // Auto-scroll chat to bottom
     useEffect(() => {
@@ -173,6 +212,12 @@ export default function LandingPage() {
     // Handle Chat Submit
     const handleSendChat = () => {
         if (!chatInput.trim()) return;
+
+        // Stop listening if user submits while talking
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        }
 
         // Add user message
         const newMessages = [...chatMessages, { type: "user", text: chatInput }];
@@ -470,39 +515,9 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ================= SECTION 3: STATS BANNER ================= */}
-            <section className="relative py-24 bg-background overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-70" />
-                <div className="max-w-7xl mx-auto px-4 relative z-10">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-12 text-center">
-                        {[
-                            { label: "Records Analyzed", to: 10000, suffix: "+" },
-                            { label: "Detection Accuracy", to: 99.2, suffix: "%" },
-                            { label: "Avg Processing Time", to: 50, suffix: "ms" },
-                            { label: "Data Security", to: 100, suffix: "% HIPAA" },
-                            { label: "Hospitals Using MedSentinel", to: 47, suffix: "+" }
-                        ].map((stat, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
-                                className="relative flex flex-col items-center justify-center space-y-3 group"
-                            >
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-primary/10 rounded-full blur-[25px] opacity-60 group-hover:opacity-100 group-hover:bg-primary/20 transition-all duration-500 pointer-events-none" />
-                                <h3 className="text-4xl md:text-5xl font-bold text-primary relative z-10 drop-shadow-[0_0_15px_rgba(0,212,255,0.2)]">
-                                    <AnimatedCounter from={0} to={stat.to} suffix={stat.suffix} />
-                                </h3>
-                                <p className="text-muted text-xs md:text-sm uppercase tracking-widest relative z-10 font-medium max-w-[160px] leading-relaxed">{stat.label}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-70" />
-            </section>
 
-            {/* ================= SECTION 4: FEATURES GRID ================= */}
+
+            {/* ================= SECTION 3: FEATURES GRID ================= */}
             <section className="py-24 bg-surface relative">
                 <div className="max-w-7xl mx-auto px-4">
                     <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center space-y-4 mb-16">
@@ -545,7 +560,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ================= SECTION 5: HEALTHCARE DATA SHOWCASE ================= */}
+            {/* ================= SECTION 4: HEALTHCARE DATA SHOWCASE ================= */}
             <section className="py-24 bg-background relative z-20 border-b border-border overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 space-y-16 relative z-10">
                     <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center space-y-4">
@@ -639,7 +654,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ================= SECTION 6: AI WORKFLOW PIPELINE ================= */}
+            {/* ================= SECTION 5: AI WORKFLOW PIPELINE ================= */}
             <section className="py-24 bg-background border-b border-border relative">
                 <div className="max-w-7xl mx-auto px-4">
                     <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-20">
@@ -682,7 +697,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ================= SECTION 7: AI CHATBOT SUPPORT WIDGET ================= */}
+            {/* ================= SECTION 6: AI CHATBOT SUPPORT WIDGET ================= */}
             <section className="py-24 bg-surface relative overflow-hidden" ref={inlineChatRef}>
                 <div className="max-w-4xl mx-auto px-4 space-y-8">
                     <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center">
@@ -714,7 +729,8 @@ export default function LandingPage() {
 
                         {/* Input Box */}
                         <div className="relative">
-                            <input disabled type="text" placeholder="Type your clinical query here..." className="w-full bg-surface-2 border border-primary/50 shadow-[0_0_15px_rgba(0,212,255,0.1)] rounded-xl py-4 pl-4 pr-12 text-accent focus:outline-none" />
+                            <div className="absolute left-3 top-3 p-1.5 bg-surface-2 border border-border rounded-lg text-muted"><Mic className="h-4 w-4" /></div>
+                            <input disabled type="text" placeholder="Type or speak your clinical query here..." className="w-full bg-surface-2 border border-primary/50 shadow-[0_0_15px_rgba(0,212,255,0.1)] rounded-xl py-4 pl-14 pr-12 text-accent focus:outline-none" />
                             <div className="absolute right-3 top-3 p-1.5 bg-primary rounded-lg"><ArrowRight className="h-4 w-4 text-background" /></div>
                             <div className="absolute -bottom-6 left-0 right-0 text-center text-[10px] text-muted font-medium flex justify-center items-center gap-2">
                                 <span>Powered by Groq LLaMA</span> <span className="w-1 h-1 rounded-full bg-muted"></span> <span>HIPAA Compliant</span>
@@ -749,7 +765,7 @@ export default function LandingPage() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
-                            className="w-[300px] h-[400px] mb-4 bg-surface/80 backdrop-blur-xl rounded-2xl border border-primary/30 shadow-[0_0_30px_rgba(0,212,255,0.2)] flex flex-col overflow-hidden"
+                            className="w-[340px] h-[400px] mb-4 bg-surface/80 backdrop-blur-xl rounded-2xl border border-primary/30 shadow-[0_0_30px_rgba(0,212,255,0.2)] flex flex-col overflow-hidden"
                         >
                             {/* Header */}
                             <div className="bg-surface-2 p-4 border-b border-border flex justify-between items-center">
@@ -775,23 +791,36 @@ export default function LandingPage() {
                                 <div ref={chatEndRef} />
                             </div>
 
-                            {/* Chat Input UI (Interactive) */}
+                            {/* Chat Input UI with Voice (Interactive) */}
                             <div className="p-3 border-t border-border bg-surface/50">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
-                                        placeholder="Ask about your data..."
-                                        className="w-full bg-background border border-border rounded-lg py-2 pl-3 pr-8 text-xs text-accent focus:outline-none"
-                                    />
+                                <div className="flex items-center gap-2">
                                     <button
-                                        onClick={handleSendChat}
-                                        className="absolute right-2 top-2 cursor-pointer hover:scale-110 transition-transform"
+                                        onClick={toggleVoice}
+                                        className={`p-2 rounded-full transition-all duration-300 flex-shrink-0 ${isListening
+                                            ? "bg-red-500 text-white animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                                            : "bg-surface-2 text-muted hover:bg-border border border-border"
+                                            }`}
+                                        title={isListening ? "Stop listening" : "Start Voice Query"}
                                     >
-                                        <ArrowRight className="h-3 w-3 text-primary" />
+                                        <Mic className="h-4 w-4" />
                                     </button>
+
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                                            placeholder="Ask about your data..."
+                                            className="w-full bg-background border border-border rounded-lg py-2 pl-3 pr-8 text-xs text-accent focus:outline-none"
+                                        />
+                                        <button
+                                            onClick={handleSendChat}
+                                            className="absolute right-2 top-2 cursor-pointer hover:scale-110 transition-transform"
+                                        >
+                                            <ArrowRight className="h-3 w-3 text-primary" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
@@ -808,7 +837,7 @@ export default function LandingPage() {
                 </motion.button>
             </div>
 
-            {/* ================= SECTION 8: CTA FOOTER ================= */}
+            {/* ================= SECTION 7: CTA FOOTER ================= */}
             <section className="relative py-32 bg-background border-t border-border overflow-hidden">
                 <div className="ambient-mesh absolute inset-0 z-0 opacity-100 pointer-events-none" />
 
@@ -830,15 +859,7 @@ export default function LandingPage() {
                     </motion.div>
                 </div>
 
-                <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.4 }} className="mt-24 pt-8 border-t border-border/50 relative z-10">
-                    <p className="text-center text-xs font-bold text-muted uppercase tracking-widest mb-6">Trusted by clinical data teams at</p>
-                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale">
-                        <div className="flex items-center gap-2 text-accent font-bold text-lg"><HeartPulse className="h-5 w-5" /> St. Mary's General</div>
-                        <div className="flex items-center gap-2 text-accent font-bold text-lg"><Activity className="h-5 w-5" /> Johns Hopkins Research</div>
-                        <div className="flex items-center gap-2 text-accent font-bold text-lg"><ShieldCheck className="h-5 w-5" /> Mayo Clinic Partner</div>
-                        <div className="flex items-center gap-2 text-accent font-bold text-lg"><Server className="h-5 w-5" /> UCSF Medical Center</div>
-                    </div>
-                </motion.div>
+
             </section>
 
             {/* ================= BACK TO TOP BUTTON ================= */}
