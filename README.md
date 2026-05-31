@@ -7,9 +7,10 @@
 <img src="https://img.shields.io/badge/Polars-1.27-CD792C?style=for-the-badge"/>
 <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white"/>
 <img src="https://img.shields.io/badge/Three.js-0.184-000000?style=for-the-badge&logo=three.js&logoColor=white"/>
-</div>
+
 
 # 🏥 MedSentinel AI
+</div>
 
 **AI-Powered Clinical Intelligence & Medical Anomaly Detection Platform**  
 A full-stack, HIPAA-aware system that ingests any clinical dataset, detects life-threatening anomalies using Isolation Forest ML, pseudonymises PHI in a secure vault, explains every risk in plain clinical language via Groq LLM, and lets you query the data with natural language — all in one unified pipeline.
